@@ -2978,7 +2978,7 @@ wheels = [
 ]
 
 [[package]]
-name = "travel-budget-estimater"
+name = "travel-budget-estimator"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
