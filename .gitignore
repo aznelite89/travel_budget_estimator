@@ -1,0 +1,106 @@
+# =========================
+# Python bytecode
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# uv virtual environment
+# =========================
+.venv/
+venv/
+.env/
+.env.*
+
+# uv cache
+.uv/
+.uv-cache/
+
+# =========================
+# Python build artifacts
+# =========================
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+*.out
+*.err
+
+# =========================
+# Testing / coverage
+# =========================
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# =========================
+# Secrets / environment variables
+# VERY IMPORTANT for CrewAI / LLM projects
+# =========================
+.env
+.env.local
+.env.development
+.env.production
+.env.secret
+
+# CrewAI / LLM secrets examples
+secrets.yaml
+secrets.yml
+config.local.yaml
+config.local.yml
+
+# =========================
+# AI / model artifacts
+# =========================
+models/
+checkpoints/
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# OS files
+# =========================
+Thumbs.db
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+*.tmp
+
+# =========================
+# CrewAI specific runtime outputs (optional)
+# =========================
+crew_logs/
+agent_logs/
+outputs/
