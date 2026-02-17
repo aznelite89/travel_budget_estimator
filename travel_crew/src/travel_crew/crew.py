@@ -12,6 +12,8 @@ from pydantic import ValidationError
 
 from .schemas import TravelBudgetEstimateV1
 
+from dotenv import load_dotenv
+load_dotenv()
 
 CONFIG_DIR = Path(__file__).resolve().parent / "config"
 JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
@@ -145,6 +147,7 @@ def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]
       tasks["risk_buffer_task"],
       tasks["budget_aggregation_task"],
       tasks["validation_task"],
+      tasks["final_report_task"], 
     ],
     process=Process.sequential,
     verbose=shared_cfg.get("defaults", {}).get("verbose", True),

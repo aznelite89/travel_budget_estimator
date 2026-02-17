@@ -218,3 +218,25 @@ validation_task:
   agent: validator_agent
   context:
     - budget_aggregation_task
+
+final_report_task:
+  description: >
+    You are the Trip Planner for {trip_title}. Produce the FINAL output for the user.
+
+    You MUST:
+    - Read the aggregated budget JSON from budget_aggregation_task and the validation JSON from validation_task.
+    - Output a single JSON object that matches TravelBudgetEstimateV1 EXACTLY:
+      meta, assumptions, estimates, totals, contingency, validation.
+    - Ensure totals/base/high/low exist and that each category has low/base/high and line_items.
+    - If validator raised issues, incorporate fixes by adjusting assumptions and/or line items conservatively,
+      and reflect the changes in assumptions notes.
+
+    OUTPUT RULES (STRICT):
+    - Output MUST be valid JSON only.
+    - No markdown, no code fences, no commentary.
+  expected_output: >
+    Return ONLY valid JSON matching TravelBudgetEstimateV1.
+  agent: trip_planner_agent
+  context:
+    - budget_aggregation_task
+    - validation_task
