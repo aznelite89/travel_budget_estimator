@@ -55,6 +55,7 @@ htmlcov/
 .env.development
 .env.production
 .env.secret
+.env.*.local
 
 # CrewAI / LLM secrets examples
 secrets.yaml
@@ -104,3 +105,10 @@ temp/
 crew_logs/
 agent_logs/
 outputs/
+
+# =========================
+# Node / pnpm
+# =========================
+node_modules/
+.pnpm-store/
+frontend/dist/
