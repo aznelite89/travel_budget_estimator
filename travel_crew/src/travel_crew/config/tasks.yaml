@@ -1,6 +1,9 @@
 trip_plan_task:
   description: >
     Build the trip skeleton for {trip_title}:
+    - This trip is from origin "{origin}" to destination "{destination}". You MUST use these exact values
+      in your output (trip_meta or meta): set "origin" to "{origin}" and "destination" to "{destination}".
+      Do not use placeholders like "TBD" or "To be determined".
     - Confirm trip dates ({start_date} to {end_date}), duration (nights/days), and party size ({travelers}).
     - Summarize traveler preferences: budget_style={budget_style}, pace, must-dos, constraints.
     - Define cost categories: flights, stay, local transport, food, activities, documents/fees, contingency.
@@ -229,7 +232,9 @@ final_report_task:
       meta, assumptions, estimates, totals, contingency, validation.
     - The meta object MUST have these exact top-level fields (no nesting):
       trip_title, origin, destination, start_date, end_date, travelers, currency, budget_style.
-      Optional fields: days, nights. DO NOT use trip_dates, duration, party_size, or any nested structures.
+      Use the user-provided values: trip_title="{trip_title}", origin="{origin}", destination="{destination}".
+      Do not use placeholders like "TBD" for origin or destination. Optional fields: days, nights.
+      DO NOT use trip_dates, duration, party_size, or any nested structures.
     - The assumptions field MUST be an object (not an array) with optional fields:
       meals_per_day, local_transport_days_ratio, activity_days_ratio, notes (array of strings).
     - Ensure totals/base/high/low exist and that each category has low/base/high and line_items.

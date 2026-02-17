@@ -3,6 +3,12 @@
 ## 2026-02-18
 
 ### Fixed
+- Budget validation: coerce types in schema (budget_style lowercase, travelers int, numerics float), normalize crew output (estimate keys, line_items, totals.per_person_base, contingency/validation defaults), surface first 5 validation error details in job error message
+
+## 2026-02-18
+
+### Fixed
+- Trip plan and final report tasks: require crew to use provided origin/destination (no TBD placeholders)
 - Force final budget meta fields to match user inputs and relax schema validation to ignore extra fields from crew output
 
 ## 2026-02-18

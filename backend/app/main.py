@@ -98,8 +98,12 @@ async def _run_job(job_id: str, payload: EstimateJobCreateRequest) -> None:
       {"status": "done"},
     )
   except ValidationError as e:
-    # Provide cleaner error message for validation failures
-    error_msg = f"Budget validation failed: {len(e.errors())} field(s) invalid. Please try again."
+    # Include first few error details so users can see what failed (e.g. field paths and messages)
+    err_detail = "; ".join(
+      f"{'.'.join(str(l) for l in err['loc'])}: {err.get('msg', 'invalid')}"
+      for err in e.errors()[:5]
+    )
+    error_msg = f"Budget validation failed: {len(e.errors())} field(s) invalid. {err_detail}"
     await asyncio.to_thread(
       update_job_status,
       job_id,

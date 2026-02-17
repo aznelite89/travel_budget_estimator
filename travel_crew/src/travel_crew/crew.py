@@ -62,6 +62,114 @@ def coerce_json_dict(result: Any) -> Dict[str, Any]:
   raise ValueError("Could not parse valid JSON object from crew output.")
 
 
+# Schema expects these exact estimate keys; map common LLM variants.
+ESTIMATES_KEY_MAP = {
+  "flight": "flights",
+  "accommodation": "stay",
+  "accommodations": "stay",
+  "lodging": "stay",
+  "local_transport": "transport",
+  "transportation": "transport",
+  "doc_fees": "docs_fees",
+  "documentation": "docs_fees",
+  "docs_and_fees": "docs_fees",
+  "documents_fees": "docs_fees",
+}
+
+
+def _normalize_line_item(item: Any) -> Dict[str, Any]:
+  if isinstance(item, dict):
+    name = item.get("name") or item.get("item") or item.get("label") or str(item.get("amount", ""))
+    amount = item.get("amount")
+    if amount is None:
+      amount = item.get("value") or item.get("cost") or 0
+    return {"name": str(name).strip() or "Item", "amount": float(amount)}
+  return {"name": "Item", "amount": 0.0}
+
+
+def _normalize_estimates_and_totals(data: Dict[str, Any]) -> None:
+  """Ensure estimates use schema keys and category shape; ensure totals.per_person_base exists."""
+  estimates = data.get("estimates")
+  if not isinstance(estimates, dict):
+    return
+
+  schema_keys = ("flights", "stay", "transport", "food", "activities", "docs_fees")
+  normalized: Dict[str, Any] = {}
+  for key, val in estimates.items():
+    if not isinstance(val, dict):
+      continue
+    k = key.lower().replace(" ", "_").replace("-", "_")
+    canonical = ESTIMATES_KEY_MAP.get(k, k)
+    if canonical in schema_keys:
+      normalized[canonical] = val
+
+  for cat_key in ("flights", "stay", "transport", "food", "activities", "docs_fees"):
+    if cat_key not in normalized:
+      normalized[cat_key] = {
+        "low": 0.0,
+        "base": 0.0,
+        "high": 0.0,
+        "line_items": [],
+        "assumptions": [],
+        "confidence": 0.5,
+      }
+    cat = normalized[cat_key]
+    if not isinstance(cat.get("line_items"), list):
+      cat["line_items"] = []
+    cat["line_items"] = [_normalize_line_item(i) for i in cat["line_items"]]
+    if not isinstance(cat.get("assumptions"), list):
+      cat["assumptions"] = [str(cat.get("assumptions", ""))] if cat.get("assumptions") else []
+    cat["assumptions"] = [str(a).strip() for a in cat["assumptions"] if str(a).strip()]
+    if "confidence" not in cat or cat["confidence"] is None:
+      cat["confidence"] = 0.5
+  data["estimates"] = normalized
+
+  totals = data.get("totals")
+  meta = data.get("meta") or {}
+  travelers = meta.get("travelers") or 1
+  if isinstance(totals, dict):
+    if "per_person_base" not in totals and "base" in totals:
+      try:
+        base = float(totals["base"])
+        data["totals"]["per_person_base"] = base / max(1, int(travelers))
+      except (TypeError, ValueError):
+        data["totals"]["per_person_base"] = 0.0
+    for k in ("low", "base", "high"):
+      if k in totals and totals[k] is not None and not isinstance(totals[k], (int, float)):
+        try:
+          data["totals"][k] = float(totals[k])
+        except (TypeError, ValueError):
+          pass
+
+  contingency = data.get("contingency")
+  if isinstance(contingency, dict):
+    base_totals = data.get("totals") or {}
+    base_val = base_totals.get("base")
+    try:
+      base_float = float(base_val) if base_val is not None else 0.0
+    except (TypeError, ValueError):
+      base_float = 0.0
+    for k, default in (
+      ("buffer_rate_used", 0.1),
+      ("base_subtotal", base_float),
+      ("buffer_amount", 0.0),
+      ("total_with_buffer", base_float),
+    ):
+      if k not in contingency or contingency[k] is None:
+        contingency[k] = default
+
+  validation = data.get("validation")
+  if isinstance(validation, dict):
+    if "validated" not in validation or validation["validated"] is None:
+      validation["validated"] = True
+    if "confidence" not in validation or validation["confidence"] is None:
+      validation["confidence"] = 0.8
+    if not isinstance(validation.get("issues"), list):
+      validation["issues"] = []
+    if not isinstance(validation.get("recommendations"), list):
+      validation["recommendations"] = []
+
+
 @dataclass
 class RunInputs:
   trip_title: str
@@ -222,6 +330,12 @@ def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]
     data["assumptions"] = {"notes": [str(item) for item in assumptions if str(item).strip()]}
   elif not isinstance(assumptions, dict):
     data["assumptions"] = {"notes": []}
+  else:
+    notes = assumptions.get("notes")
+    if not isinstance(notes, list):
+      data["assumptions"] = {**assumptions, "notes": [] if notes is None else [str(notes)]}
+
+  _normalize_estimates_and_totals(data)
 
   if validate:
     model = TravelBudgetEstimateV1.model_validate(data)  # raises ValidationError
