@@ -2,6 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
+from crewai_tools import SerperDevTool
 # If you want to run a snippet of code before or after the crew starts,
 # you can use the @before_kickoff and @after_kickoff decorators
 # https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
@@ -20,34 +21,117 @@ class TravelCrew():
     # If you would like to add tools to your agents, you can learn more about it here:
     # https://docs.crewai.com/concepts/agents#agent-tools
     @agent
-    def researcher(self) -> Agent:
+    def trip_planner(self) -> Agent:
         return Agent(
-            config=self.agents_config['researcher'], # type: ignore[index]
+            config=self.agents_config['trip_planner'], # type: ignore[index]
             verbose=True
         )
 
     @agent
-    def reporting_analyst(self) -> Agent:
+    def flight_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
-            verbose=True
+            config=self.agents_config['flight_agent'],
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
+    @agent
+    def stay_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['stay_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
         )
 
+    @agent
+    def transport_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['transport_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+
+    @agent
+    def food_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['food_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
+    @agent
+    def activity_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['activity_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
+    @agent
+    def docs_fees_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['docs_fees_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
+    @agent
+    def risk_buffer_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['risk_buffer_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
+    @agent
+    def budget_aggregator_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['budget_aggregator_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
+    @agent
+    def validator_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['validator_agent'], # type: ignore[index]
+            verbose=True,
+            tools=[SerperDevTool()]
+        )
+    
     # To learn more about structured task outputs,
     # task dependencies, and task callbacks, check out the documentation:
     # https://docs.crewai.com/concepts/tasks#overview-of-a-task
     @task
-    def research_task(self) -> Task:
+    def validate_trip_info(self) -> Task:
         return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
+            config=self.tasks_config['validate_trip_info'], # type: ignore[index]
         )
 
     @task
-    def reporting_task(self) -> Task:
+    def produce_trip_plan(self) -> Task:
         return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
+            config=self.tasks_config['produce_trip_plan'], # type: ignore[index]
             output_file='report.md'
         )
+    
+    @task
+    def validate_flight_info(self) -> Task:
+        return Task(
+            config=self.tasks_config['validate_flight_info'], # type: ignore[index]
+        )
+    
+    @task
+    def produce_flight_plan(self) -> Task:
+        return Task(
+            config=self.tasks_config['produce_flight_plan'], # type: ignore[index]
+            output_file='flight_plan.md'
+        )
+
+
+
+
+
 
     @crew
     def crew(self) -> Crew:
