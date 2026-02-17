@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "travel_budget_estimate_v1",
+  "type": "object",
+  "required": [
+    "meta",
+    "assumptions",
+    "estimates",
+    "totals",
+    "contingency",
+    "validation"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": [
+        "trip_title",
+        "origin",
+        "destination",
+        "start_date",
+        "end_date",
+        "travelers",
+        "currency",
+        "budget_style"
+      ],
+      "properties": {
+        "trip_title": { "type": "string" },
+        "origin": { "type": "string" },
+        "destination": { "type": "string" },
+        "start_date": { "type": "string" },
+        "end_date": { "type": "string" },
+        "days": { "type": "integer" },
+        "nights": { "type": "integer" },
+        "travelers": { "type": "integer", "minimum": 1 },
+        "currency": { "type": "string" },
+        "budget_style": {
+          "type": "string",
+          "enum": ["budget", "midrange", "luxury"]
+        }
+      }
+    },
+    "assumptions": {
+      "type": "object",
+      "properties": {
+        "meals_per_day": { "type": "number" },
+        "local_transport_days_ratio": { "type": "number" },
+        "activity_days_ratio": { "type": "number" },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "estimates": {
+      "type": "object",
+      "required": [
+        "flights",
+        "stay",
+        "transport",
+        "food",
+        "activities",
+        "docs_fees"
+      ],
+      "properties": {
+        "flights": { "$ref": "#/$defs/categoryEstimate" },
+        "stay": { "$ref": "#/$defs/categoryEstimate" },
+        "transport": { "$ref": "#/$defs/categoryEstimate" },
+        "food": { "$ref": "#/$defs/categoryEstimate" },
+        "activities": { "$ref": "#/$defs/categoryEstimate" },
+        "docs_fees": { "$ref": "#/$defs/categoryEstimate" }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["low", "base", "high", "per_person_base"],
+      "properties": {
+        "low": { "type": "number" },
+        "base": { "type": "number" },
+        "high": { "type": "number" },
+        "per_person_base": { "type": "number" }
+      }
+    },
+    "contingency": {
+      "type": "object",
+      "required": [
+        "buffer_rate_used",
+        "base_subtotal",
+        "buffer_amount",
+        "total_with_buffer"
+      ],
+      "properties": {
+        "buffer_rate_used": { "type": "number" },
+        "base_subtotal": { "type": "number" },
+        "buffer_amount": { "type": "number" },
+        "total_with_buffer": { "type": "number" }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["validated", "issues", "recommendations", "confidence"],
+      "properties": {
+        "validated": { "type": "boolean" },
+        "issues": { "type": "array", "items": { "type": "string" } },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "categoryEstimate": {
+      "type": "object",
+      "required": [
+        "low",
+        "base",
+        "high",
+        "line_items",
+        "assumptions",
+        "confidence"
+      ],
+      "properties": {
+        "low": { "type": "number" },
+        "base": { "type": "number" },
+        "high": { "type": "number" },
+        "line_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "amount"],
+            "properties": {
+              "name": { "type": "string" },
+              "amount": { "type": "number" }
+            }
+          }
+        },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

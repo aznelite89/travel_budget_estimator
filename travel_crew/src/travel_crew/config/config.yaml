@@ -1,0 +1,28 @@
+defaults:
+  llm_model: gpt-4o-mini
+  temperature: 0.2
+  max_iter: 3
+  verbose: true
+
+currency:
+  default_currency: "MYR"
+  rounding:
+    money_dp: 0
+    fx_dp: 4
+
+buffers:
+  contingency:
+    budget: 0.12
+    midrange: 0.10
+    luxury: 0.08
+  fx_volatility_extra: 0.02
+
+assumptions:
+  meals_per_day: 3
+  local_transport_days_ratio: 0.85
+  activity_days_ratio: 0.6
+
+quality:
+  require_line_items: true
+  require_notes: true
+  require_confidence: true

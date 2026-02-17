@@ -1,17 +1,220 @@
-research_task:
+trip_plan_task:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
-  expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+    Build the trip skeleton for {trip_title}:
+    - Confirm trip dates ({start_date} to {end_date}), duration (nights/days), and party size ({travelers}).
+    - Summarize traveler preferences: budget_style={budget_style}, pace, must-dos, constraints.
+    - Define cost categories: flights, stay, local transport, food, activities, documents/fees, contingency.
+    - Output a structured trip plan to guide downstream estimates.
 
-reporting_task:
-  description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    JSON object with: trip_meta, assumptions, budget_style, and category_budget_targets.
+  agent: trip_planner_agent
+
+flight_estimate_task:
+  description: >
+    Estimate flight costs for {travelers} travelers for route {origin} -> {destination} (round trip unless specified).
+    Consider:
+    - Seasonality / booking window (based on {start_date})
+    - Airline type by budget_style (budget/midrange/luxury)
+    - Add realistic add-ons: baggage, seat selection, payment fees, airport taxes if applicable
+    Return low/base/high estimates and key assumptions.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with: low/base/high totals, per_person breakdown, and line_items (fare, baggage, taxes, fees).
+  agent: flight_agent
+  context:
+    - trip_plan_task
+
+stay_estimate_task:
+  description: >
+    Estimate accommodation costs for {destination} for {nights} nights for {travelers} travelers.
+    Determine room count assumption (e.g., 1 room for 2 travelers, adjust if needed).
+    Include:
+    - nightly_rate_low/base/high based on budget_style
+    - taxes/service fees if common
+    Provide line items and confidence.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with: low/base/high totals, nightly breakdown, taxes/fees, and assumptions (room_count, location tier).
+  agent: stay_agent
+  context:
+    - trip_plan_task
+
+transport_estimate_task:
+  description: >
+    Estimate local transportation costs in {destination} for the trip duration.
+    Include:
+    - airport transfers
+    - public transport passes or per-ride costs
+    - taxis/ride-hailing share
+    - optional rental car (only if relevant)
+    Use assumptions.local_transport_days_ratio from shared config if needed.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with: low/base/high totals, line items (airport_transfer, transit, taxi, rental), and assumptions.
+  agent: transport_agent
+  context:
+    - trip_plan_task
+
+food_estimate_task:
+  description: >
+    Estimate food & beverage daily costs in {destination} for {travelers} travelers across {days} days.
+    Use meals_per_day from shared config (default 3).
+    Provide:
+    - per_day_per_person low/base/high
+    - totals and line items (meals, snacks, drinks)
+    - notes about how budget_style affects dining mix.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with per_day_per_person, totals low/base/high, and line_items.
+  agent: food_agent
+  context:
+    - trip_plan_task
+
+activity_estimate_task:
+  description: >
+    Estimate attraction/activity costs for {destination}.
+    Use activity_days_ratio from shared config to estimate how many days include paid activities.
+    Include:
+    - admission tickets
+    - tours / experiences
+    - optional day trips
+    Provide low/base/high totals and line items.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with low/base/high totals, line_items list, and assumptions (paid_activity_days).
+  agent: activity_agent
+  context:
+    - trip_plan_task
+
+docs_fees_estimate_task:
+  description: >
+    Estimate documentation & mandatory fees:
+    - visa fees (if applicable)
+    - travel insurance (per traveler)
+    - SIM/eSIM (optional but common)
+    - vaccinations/permits (if destination requires)
+    - service charges and other mandatory fees
+    Provide low/base/high totals and line items.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with low/base/high totals, line_items, and notes on what depends on nationality.
+  agent: docs_fees_agent
+  context:
+    - trip_plan_task
+
+risk_buffer_task:
+  description: >
+    Compute contingency buffer based on shared config buffers.contingency for budget_style={budget_style},
+    plus optional FX volatility extra if currency differs from {currency}.
+    Buffer should apply on top of the base totals of all categories.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON with buffer_rate_used, base_subtotal, buffer_amount, and total_with_buffer.
+  agent: risk_buffer_agent
+  context:
+    - flight_estimate_task
+    - stay_estimate_task
+    - transport_estimate_task
+    - food_estimate_task
+    - activity_estimate_task
+    - docs_fees_estimate_task
+
+budget_aggregation_task:
+  description: >
+    Aggregate all category estimates into a single structured budget.
+    Requirements:
+    - Keep category-level low/base/high totals
+    - Compute grand totals low/base/high
+    - Provide per_person totals
+    - Include contingency output from risk_buffer_task
+    - Produce final output following the output schema exactly.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    One JSON object that matches the output schema (travel_budget_estimate_v1).
+  agent: budget_aggregator_agent
+  context:
+    - trip_plan_task
+    - flight_estimate_task
+    - stay_estimate_task
+    - transport_estimate_task
+    - food_estimate_task
+    - activity_estimate_task
+    - docs_fees_estimate_task
+    - risk_buffer_task
+
+validation_task:
+  description: >
+    Validate the aggregated budget for completeness, consistency, and realism:
+    - check missing categories
+    - check nights/days consistency
+    - check totals math
+    - flag low-confidence assumptions
+    - suggest optimization opportunities (cost savings)
+    Must not change the schema; only add validation + recommendations fields.
+
+    OUTPUT RULES (MUST FOLLOW):
+    - Output MUST be valid JSON only. No markdown. No code fences.
+    - Use double quotes for all keys/strings.
+    - All currency amounts must be numbers only (no currency symbols).
+    - Always include "confidence" (0..1) and "assumptions" (array of strings).
+    - If something is unknown, make a reasonable assumption and write it into "assumptions".
+  expected_output: >
+    JSON object matching schema with validated=true/false, issues[], and recommendations[] populated.
+  agent: validator_agent
+  context:
+    - budget_aggregation_task

@@ -2984,12 +2984,16 @@ source = { virtual = "." }
 dependencies = [
     { name = "crewai" },
     { name = "crewai-tools" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "crewai", specifier = ">=1.9.3" },
     { name = "crewai-tools", specifier = ">=1.9.3" },
+    { name = "pydantic", specifier = ">=2.11.10" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 
 [[package]]
