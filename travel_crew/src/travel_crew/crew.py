@@ -25,11 +25,21 @@ def load_yaml(path: Path) -> Dict[str, Any]:
 
 
 def coerce_json_dict(result: Any) -> Dict[str, Any]:
+  # Normalise known CrewAI result container types to raw string/dict.
+  # Newer versions of CrewAI return a `CrewOutput` object from `kickoff()`,
+  # which exposes the underlying text on `.raw`. We duck-type here so we
+  # don't need to import the concrete class.
+  if not isinstance(result, (dict, str)):
+    if hasattr(result, "raw"):
+      result = result.raw  # type: ignore[assignment]
+    elif hasattr(result, "output"):
+      # Fallback for any future attribute naming; treat like `.raw`.
+      result = getattr(result, "output")  # type: ignore[assignment]
+    else:
+      raise TypeError(f"Unexpected crew result type: {type(result)}")
+
   if isinstance(result, dict):
     return result
-
-  if not isinstance(result, str):
-    raise TypeError(f"Unexpected crew result type: {type(result)}")
 
   text = result.strip()
 

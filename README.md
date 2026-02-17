@@ -4,6 +4,24 @@ CrewAI-powered travel budget estimator with:
 - `backend/`: FastAPI API (async jobs)
 - `frontend/`: Vite React UI (JSX)
 
+### Common `uv` commands for local setup
+
+Run these from the repo root on a new machine:
+
+```bash
+# create / reuse a uv-managed virtualenv for this project
+uv init
+
+# install all Python dependencies from pyproject.toml
+uv sync
+
+# run backend locally (FastAPI)
+uv run uvicorn backend.app.main:app --reload --port 8000
+
+# run the CLI-based estimator
+uv run python -m travel_budget_estimator.cli --help
+```
+
 ### Run backend (FastAPI)
 
 From repo root:
@@ -37,3 +55,19 @@ Optional: configure API base URL by copying `frontend/.env.example` to `frontend
 - `POST /api/estimate-jobs/{job_id}/cancel` – best-effort cancel
 - `GET /api/estimate-jobs/{job_id}/events` – SSE stream of job events/progress
 
+### CLI example (CrewAI `travel_crew`)
+
+From the repo root:
+
+```bash
+uv run python -m travel_budget_estimator.cli \
+  --trip-title "Travel: Tokyo Spring" \
+  --origin "Kuala Lumpur" \
+  --destination "Tokyo" \
+  --start-date 2026-04-10 \
+  --end-date 2026-04-18 \
+  --travelers 2 \
+  --currency MYR \
+  --budget-style midrange \
+  --out outputs/tokyo_budget.json
+```
