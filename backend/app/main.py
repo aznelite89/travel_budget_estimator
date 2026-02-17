@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from .db import engine
 from .models import Base, JobStatus
@@ -96,6 +96,16 @@ async def _run_job(job_id: str, payload: EstimateJobCreateRequest) -> None:
       "progress",
       "Job completed",
       {"status": "done"},
+    )
+  except ValidationError as e:
+    # Provide cleaner error message for validation failures
+    error_msg = f"Budget validation failed: {len(e.errors())} field(s) invalid. Please try again."
+    await asyncio.to_thread(
+      update_job_status,
+      job_id,
+      status="error",
+      error=error_msg,
+      set_finished=True,
     )
   except Exception as e:
     await asyncio.to_thread(

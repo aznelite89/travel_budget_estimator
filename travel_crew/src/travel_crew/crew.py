@@ -166,6 +166,63 @@ def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]
   result = crew.kickoff()
   data = coerce_json_dict(result)
 
+  # Normalize meta structure to match TravelBudgetEstimateV1 schema
+  meta = data.get("meta")
+  if isinstance(meta, dict):
+    # Map nested trip_dates structure to flat fields
+    trip_dates = meta.get("trip_dates")
+    if isinstance(trip_dates, dict):
+      if "start" in trip_dates and "start_date" not in meta:
+        meta["start_date"] = trip_dates["start"]
+      if "end" in trip_dates and "end_date" not in meta:
+        meta["end_date"] = trip_dates["end"]
+      meta.pop("trip_dates", None)
+
+    # Map duration structure if present
+    duration = meta.get("duration")
+    if isinstance(duration, dict):
+      if "days" in duration and "days" not in meta:
+        meta["days"] = duration["days"]
+      if "nights" in duration and "nights" not in meta:
+        meta["nights"] = duration["nights"]
+      meta.pop("duration", None)
+
+    # Map party_size to travelers
+    if "party_size" in meta and "travelers" not in meta:
+      meta["travelers"] = meta["party_size"]
+      meta.pop("party_size", None)
+
+    # Ensure all required fields are present and match the original user inputs.
+    # We intentionally overwrite any model-generated values here so the final
+    # response always reflects what the user entered in the UI.
+    meta["trip_title"] = run.trip_title
+    meta["origin"] = run.origin
+    meta["destination"] = run.destination
+    meta["start_date"] = run.start_date
+    meta["end_date"] = run.end_date
+    meta["travelers"] = int(run.travelers)
+    meta["currency"] = run.currency
+    meta["budget_style"] = run.budget_style
+  else:
+    # If meta is missing or not a dict, create it from RunInputs
+    data["meta"] = {
+      "trip_title": run.trip_title,
+      "origin": run.origin,
+      "destination": run.destination,
+      "start_date": run.start_date,
+      "end_date": run.end_date,
+      "travelers": int(run.travelers),
+      "currency": run.currency,
+      "budget_style": run.budget_style,
+    }
+
+  # Normalize assumptions: schema expects an object, but model may output a list
+  assumptions = data.get("assumptions")
+  if isinstance(assumptions, list):
+    data["assumptions"] = {"notes": [str(item) for item in assumptions if str(item).strip()]}
+  elif not isinstance(assumptions, dict):
+    data["assumptions"] = {"notes": []}
+
   if validate:
     model = TravelBudgetEstimateV1.model_validate(data)  # raises ValidationError
     return model.model_dump()

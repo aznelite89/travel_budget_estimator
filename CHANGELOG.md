@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-02-18
+
+### Fixed
+- Force final budget meta fields to match user inputs and relax schema validation to ignore extra fields from crew output
+
+## 2026-02-18
+
+### Fixed
+- Normalize crew output meta structure to match TravelBudgetEstimateV1 schema (map trip_dates/duration/party_size to flat fields)
+- Ensure all required meta fields (trip_title, origin, destination, start_date, end_date, travelers, currency, budget_style) are present
+- Normalize assumptions field when crew outputs a list instead of an object
+- Improve validation error messages in backend job handler
+
 ## 2026-02-17
 
 ### Fixed

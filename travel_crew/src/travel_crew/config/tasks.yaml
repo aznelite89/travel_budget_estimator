@@ -227,6 +227,11 @@ final_report_task:
     - Read the aggregated budget JSON from budget_aggregation_task and the validation JSON from validation_task.
     - Output a single JSON object that matches TravelBudgetEstimateV1 EXACTLY:
       meta, assumptions, estimates, totals, contingency, validation.
+    - The meta object MUST have these exact top-level fields (no nesting):
+      trip_title, origin, destination, start_date, end_date, travelers, currency, budget_style.
+      Optional fields: days, nights. DO NOT use trip_dates, duration, party_size, or any nested structures.
+    - The assumptions field MUST be an object (not an array) with optional fields:
+      meals_per_day, local_transport_days_ratio, activity_days_ratio, notes (array of strings).
     - Ensure totals/base/high/low exist and that each category has low/base/high and line_items.
     - If validator raised issues, incorporate fixes by adjusting assumptions and/or line items conservatively,
       and reflect the changes in assumptions notes.

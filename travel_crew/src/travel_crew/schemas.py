@@ -8,7 +8,7 @@ BudgetStyle = Literal["budget", "midrange", "luxury"]
 
 
 class LineItem(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
   name: str
   amount: float = Field(..., ge=0)
 
@@ -22,7 +22,7 @@ class LineItem(BaseModel):
 
 
 class CategoryEstimate(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   low: float = Field(..., ge=0)
   base: float = Field(..., ge=0)
@@ -50,7 +50,7 @@ class CategoryEstimate(BaseModel):
 
 
 class Meta(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   trip_title: str
   origin: str
@@ -65,7 +65,7 @@ class Meta(BaseModel):
 
 
 class Assumptions(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   meals_per_day: Optional[float] = Field(default=None, ge=0)
   local_transport_days_ratio: Optional[float] = Field(default=None, ge=0, le=1)
@@ -74,7 +74,7 @@ class Assumptions(BaseModel):
 
 
 class Estimates(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   flights: CategoryEstimate
   stay: CategoryEstimate
@@ -85,7 +85,7 @@ class Estimates(BaseModel):
 
 
 class Totals(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   low: float = Field(..., ge=0)
   base: float = Field(..., ge=0)
@@ -102,7 +102,7 @@ class Totals(BaseModel):
 
 
 class Contingency(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   buffer_rate_used: float = Field(..., ge=0, le=1)
   base_subtotal: float = Field(..., ge=0)
@@ -111,7 +111,7 @@ class Contingency(BaseModel):
 
 
 class ValidationBlock(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   validated: bool
   issues: List[str] = Field(default_factory=list)
@@ -120,7 +120,7 @@ class ValidationBlock(BaseModel):
 
 
 class TravelBudgetEstimateV1(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+  model_config = ConfigDict(extra="ignore")
 
   meta: Meta
   assumptions: Assumptions
