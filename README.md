@@ -56,6 +56,17 @@ Optional: configure API base URL by copying `frontend/.env.example` to `frontend
 - `POST /api/estimate-jobs/{job_id}/cancel` – best-effort cancel
 - `GET /api/estimate-jobs/{job_id}/events` – SSE stream of job events/progress
 
+### Amadeus flight pricing (test environment)
+
+Flight estimates can be grounded on real prices from the Amadeus Self-Service APIs.
+
+- Set the following environment variables (for example in `travel_crew/.env`):
+  - `AMADEUS_API_KEY` – your Amadeus API key
+  - `AMADEUS_API_SECRET` – your Amadeus API secret
+  - `AMADEUS_ENV` – `test` (default) or `production`
+- The backend uses the **test** environment (`https://test.api.amadeus.com`) by default and can be
+  switched to production by setting `AMADEUS_ENV=production`.
+
 ### CLI example (CrewAI `travel_crew`)
 
 From the repo root:

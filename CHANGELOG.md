@@ -2,6 +2,21 @@
 
 ## 2026-02-18
 
+### Changed
+
+- Flight estimates now use the Amadeus Self-Service APIs (Flight Offers Search) via an AmadeusFlightOffersTool when AMADEUS_API_KEY/SECRET are configured, replacing Cheapflights+Serper for flight pricing
+- Flight estimation prompts now explicitly describe how to call the Amadeus tool with structured parameters and map its query_used/samples into the flights estimate
+
+### Added
+
+- Structured sample evidence for flights and stays: Cheapflights/Agoda Serper tools now return JSON with query_used and samples, stored under estimates.flights.samples and estimates.stay.samples and rendered in the frontend as “Sample flights/stays” with labels, prices, and links
+
+### Fixed
+
+- Cheapflights Serper tool invocation now uses the correct keyword argument (`search_query`) so SerperDevTool runs successfully instead of raising a positional-argument error
+
+## 2026-02-18
+
 ### Fixed
 
 - CORS: allow origins for localhost:5174 and 127.0.0.1:5174 so frontend on port 5174 can call backend

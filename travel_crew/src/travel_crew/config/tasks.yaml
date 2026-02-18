@@ -22,6 +22,29 @@ trip_plan_task:
 flight_estimate_task:
   description: >
     Estimate flight costs for {travelers} travelers for route {origin} -> {destination} (round trip unless specified).
+    When the Amadeus flight offers tool is available, you MUST use it to ground your estimates in
+    current market data from the Amadeus Self-Service APIs (test or production environment depending
+    on configuration):
+    - Call the tool with structured parameters derived from user inputs:
+      - origin: IATA code for "{origin}" (e.g., KUL)
+      - destination: IATA code for "{destination}" (e.g., NRT)
+      - start_date: "{start_date}"
+      - end_date: "{end_date}"
+      - travelers: {travelers}
+      - currency: "{currency}"
+    - The tool returns a JSON string with fields like:
+      - "query_used": the exact parameters it sent to Amadeus
+      - "samples": an optional list of sample results with label/price_text/currency/url
+      - "offer_count": number of offers returned
+      - "error": present only when the API call failed
+    - Parse this JSON and:
+      - Copy "query_used" (or a concise summary) into estimates.flights.assumptions as an evidence note.
+      - Map each relevant entry in "samples" into estimates.flights.samples.
+      - Use these samples (and offer_count) to infer typical low/base/high round-trip prices per traveler,
+        including notes about airline types and fare classes where apparent.
+    - If the tool output contains an "error" field or if no useful samples are returned, clearly document
+      this in assumptions and fall back to well-justified heuristic estimates, leaving estimates.flights.samples
+      empty or minimal.
     Consider:
     - Seasonality / booking window (based on {start_date})
     - Airline type by budget_style (budget/midrange/luxury)
@@ -43,6 +66,22 @@ flight_estimate_task:
 stay_estimate_task:
   description: >
     Estimate accommodation costs for {destination} for {nights} nights for {travelers} travelers.
+    When the Agoda web search tool is available, you MUST use it to base your nightly price ranges on
+    current listings from agoda.com:
+    - Call the tool with queries like:
+      - "Hotels in {destination} {start_date} to {end_date} {budget_style} {currency}"
+      - "{destination} accommodation {nights} nights {budget_style} {currency}"
+    - The tool returns a JSON string with fields like:
+      - "query_used": the exact Agoda query it executed
+      - "samples": an optional list of sample results with label/price_text/url
+    - Parse this JSON and:
+      - Copy "query_used" into estimates.stay.assumptions as an evidence note.
+      - Map each relevant entry in "samples" into estimates.stay.samples.
+      - Use these samples to infer typical nightly low/base/high rates for the relevant room type(s),
+        and derive total stay costs including common taxes/service fees.
+    - If the tool output contains an "error" field or indicates that SERPER_API_KEY is missing or any
+      search error occurs, clearly document this in assumptions and fall back to well-justified
+      heuristic estimates, leaving estimates.stay.samples empty.
     Determine room count assumption (e.g., 1 room for 2 travelers, adjust if needed).
     Include:
     - nightly_rate_low/base/high based on budget_style

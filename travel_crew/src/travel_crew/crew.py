@@ -15,6 +15,8 @@ from crewai import Agent, Task, Crew, Process
 from pydantic import ValidationError
 
 from .schemas import TravelBudgetEstimateV1
+from .tools.custom_tool import AgodaStaySearchTool
+from .tools.amadeus_flights import AmadeusFlightOffersTool
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -272,13 +274,23 @@ def build_agents(agents_cfg: Dict[str, Any], shared_cfg: Dict[str, Any], inputs:
   max_iter = int(defaults.get("max_iter", 3))
   verbose = bool(defaults.get("verbose", False))
 
+  amadeus_flights_tool = AmadeusFlightOffersTool()
+  agoda_tool = AgodaStaySearchTool()
+
   agents: Dict[str, Agent] = {}
   for agent_name, spec in agents_cfg.items():
+    tools = None
+    if agent_name == "flight_agent":
+      tools = [amadeus_flights_tool]
+    elif agent_name == "stay_agent":
+      tools = [agoda_tool]
+
     agents[agent_name] = Agent(
       role=spec["role"].format(**inputs),
       goal=spec["goal"].format(**inputs),
       backstory=spec["backstory"].format(**inputs),
       llm=llm_model,
+      tools=tools,
       temperature=temperature,
       max_iter=max_iter,
       verbose=verbose,

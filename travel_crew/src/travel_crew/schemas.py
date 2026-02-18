@@ -35,6 +35,15 @@ class LineItem(BaseModel):
     return _coerce_float(v)
 
 
+class SampleItem(BaseModel):
+  model_config = ConfigDict(extra="ignore")
+
+  label: str
+  price_text: Optional[str] = None
+  currency: Optional[str] = None
+  url: Optional[str] = None
+
+
 class CategoryEstimate(BaseModel):
   model_config = ConfigDict(extra="ignore")
 
@@ -45,6 +54,7 @@ class CategoryEstimate(BaseModel):
   line_items: List[LineItem] = Field(default_factory=list)
   assumptions: List[str] = Field(default_factory=list)
   confidence: float = Field(..., ge=0, le=1)
+  samples: List[SampleItem] = Field(default_factory=list)
 
   @field_validator("low", "base", "high", "confidence", mode="before")
   @classmethod

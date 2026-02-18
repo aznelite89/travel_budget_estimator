@@ -331,17 +331,56 @@ function App() {
               <hr style={{ margin: '18px 0', borderColor: '#2a2a2a' }} />
               <strong>Categories (base)</strong>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-                {Object.entries(estimates).map(([key, cat]) => (
-                  <div key={key} style={{ padding: 12, border: '1px solid #2a2a2a', borderRadius: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ textTransform: 'capitalize' }}>{key.replace('_', ' ')}</div>
-                      <div style={{ fontWeight: 700 }}>{formatCurrency(cat?.base, currency)}</div>
+                {Object.entries(estimates).map(([key, cat]) => {
+                  const samples = Array.isArray(cat?.samples) ? cat.samples : []
+                  const showSamples = samples.length > 0 && (key === 'flights' || key === 'stay')
+                  return (
+                    <div key={key} style={{ padding: 12, border: '1px solid #2a2a2a', borderRadius: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                        <div style={{ textTransform: 'capitalize' }}>{key.replace('_', ' ')}</div>
+                        <div style={{ fontWeight: 700 }}>{formatCurrency(cat?.base, currency)}</div>
+                      </div>
+                      <div style={{ color: '#888', marginTop: 6 }}>
+                        Confidence:{' '}
+                        {typeof cat?.confidence === 'number' ? Math.round(cat.confidence * 100) : '-'}%
+                      </div>
+                      {showSamples ? (
+                        <div style={{ marginTop: 8, fontSize: 12 }}>
+                          <div style={{ color: '#888', marginBottom: 4 }}>
+                            Sample {key === 'flights' ? 'flights (Cheapflights)' : 'stays (Agoda)'}:
+                          </div>
+                          <ul style={{ paddingLeft: 16, margin: 0 }}>
+                            {samples.slice(0, 4).map((s, idx) => (
+                              <li key={idx} style={{ marginBottom: 4 }}>
+                                <span>{s.label}</span>
+                                {s.price_text ? (
+                                  <span>
+                                    {' '}
+                                    – {s.price_text}
+                                    {s.currency ? ` ${s.currency}` : ''}
+                                  </span>
+                                ) : null}
+                                {s.url ? (
+                                  <>
+                                    {' '}
+                                    <a
+                                      href={s.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      style={{ color: '#4ea1ff' }}
+                                    >
+                                      View
+                                    </a>
+                                  </>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                     </div>
-                    <div style={{ color: '#888', marginTop: 6 }}>
-                      Confidence: {typeof cat?.confidence === 'number' ? Math.round(cat.confidence * 100) : '-'}%
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </>
           ) : null}
