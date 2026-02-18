@@ -1,6 +1,7 @@
 ## Travel Budget Estimator
 
 CrewAI-powered travel budget estimator with:
+
 - `backend/`: FastAPI API (async jobs)
 - `frontend/`: Vite React UI (JSX)
 
@@ -35,7 +36,7 @@ Health check: `http://localhost:8000/health`
 Backend requires a Postgres database configured via `DATABASE_URL`, for example:
 
 ```bash
-export DATABASE_URL='postgresql+psycopg://user:password@localhost:5432/travel_budget'
+export DATABASE_URL='postgresql+psycopg://chanthaithong@localhost:5432/travel_budget'
 ```
 
 ### Run frontend (Vite React)

@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- CORS: allow origins for localhost:5174 and 127.0.0.1:5174 so frontend on port 5174 can call backend
 - Stay (and food) estimates no longer use 0 nights/days: trip days and nights are now derived from start_date/end_date and passed into crew task inputs
 
 ## 2026-02-18
