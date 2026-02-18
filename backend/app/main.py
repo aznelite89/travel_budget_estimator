@@ -10,7 +10,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from .db import engine
@@ -134,6 +134,16 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+  """Ensure every error path returns JSON so the frontend never gets non-JSON bodies."""
+  return JSONResponse(
+    status_code=500,
+    content={"detail": "Internal server error", "code": "internal_error"},
+    media_type="application/json",
+  )
 
 
 @app.get("/health")

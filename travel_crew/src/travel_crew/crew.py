@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
 
 import yaml
 from crewai import Agent, Task, Crew, Process
@@ -16,12 +19,109 @@ from dotenv import load_dotenv
 load_dotenv()
 
 CONFIG_DIR = Path(__file__).resolve().parent / "config"
+# Fallback for backward compatibility when brace-matching finds nothing
 JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 
 def load_yaml(path: Path) -> Dict[str, Any]:
   with path.open("r", encoding="utf-8") as f:
     return yaml.safe_load(f)
+
+
+def _strip_code_fences(text: str) -> str:
+  """Remove optional markdown code fences (e.g. ```json ... ```) from the string."""
+  s = text.strip()
+  if s.startswith("```"):
+    # Find first newline after opening fence
+    first_nl = s.find("\n")
+    if first_nl != -1:
+      s = s[first_nl + 1:]
+    # Find closing fence
+    close = s.find("```")
+    if close != -1:
+      s = s[:close]
+  return s.strip()
+
+
+def _extract_brace_object(text: str) -> str | None:
+  """Extract the first complete top-level {...} object using brace-matching."""
+  start = text.find("{")
+  if start == -1:
+    return None
+  depth = 0
+  in_string = False
+  escape = False
+  quote_char = None
+  i = start
+  while i < len(text):
+    c = text[i]
+    if escape:
+      escape = False
+      i += 1
+      continue
+    if c == "\\" and in_string:
+      escape = True
+      i += 1
+      continue
+    if in_string:
+      if c == quote_char:
+        in_string = False
+      i += 1
+      continue
+    if c in ('"', "'"):
+      in_string = True
+      quote_char = c
+      i += 1
+      continue
+    if c == "{":
+      depth += 1
+    elif c == "}":
+      depth -= 1
+      if depth == 0:
+        return text[start : i + 1]
+    i += 1
+  return None
+
+
+def extract_json(text: str) -> Dict[str, Any]:
+  """
+  Extract a single JSON object from text that may contain markdown fences or
+  surrounding commentary. Uses fence stripping and brace-matching for robustness.
+  """
+  text = _strip_code_fences(text)
+  if not text:
+    raise ValueError("No content to parse after stripping code fences.")
+
+  # Try direct parse first
+  try:
+    obj = json.loads(text)
+    if isinstance(obj, dict):
+      return obj
+    raise ValueError("Parsed JSON is not an object.")
+  except json.JSONDecodeError:
+    pass
+
+  # Extract first balanced {...} object
+  candidate = _extract_brace_object(text)
+  if candidate:
+    try:
+      obj = json.loads(candidate)
+      if isinstance(obj, dict):
+        return obj
+    except json.JSONDecodeError:
+      pass
+
+  # Fallback: greedy regex (backward compatibility)
+  m = JSON_OBJECT_RE.search(text)
+  if m:
+    try:
+      obj = json.loads(m.group(0))
+      if isinstance(obj, dict):
+        return obj
+    except json.JSONDecodeError:
+      pass
+
+  raise ValueError("Could not parse valid JSON object from crew output.")
 
 
 def coerce_json_dict(result: Any) -> Dict[str, Any]:
@@ -41,25 +141,7 @@ def coerce_json_dict(result: Any) -> Dict[str, Any]:
   if isinstance(result, dict):
     return result
 
-  text = result.strip()
-
-  # 1) direct JSON
-  try:
-    obj = json.loads(text)
-    if isinstance(obj, dict):
-      return obj
-  except Exception:
-    pass
-
-  # 2) extract first JSON object if model leaked text
-  m = JSON_OBJECT_RE.search(text)
-  if m:
-    candidate = m.group(0)
-    obj = json.loads(candidate)
-    if isinstance(obj, dict):
-      return obj
-
-  raise ValueError("Could not parse valid JSON object from crew output.")
+  return extract_json(result.strip())
 
 
 # Schema expects these exact estimate keys; map common LLM variants.
@@ -216,11 +298,14 @@ def build_tasks(tasks_cfg: Dict[str, Any], agents: Dict[str, Agent], shared_cfg:
   # pass 1: create
   for task_name, spec in tasks_cfg.items():
     agent_key = spec["agent"]
-    tasks[task_name] = Task(
-      description=spec["description"].format(**merged),
-      expected_output=spec["expected_output"].format(**merged),
-      agent=agents[agent_key],
-    )
+    task_kw: Dict[str, Any] = {
+      "description": spec["description"].format(**merged),
+      "expected_output": spec["expected_output"].format(**merged),
+      "agent": agents[agent_key],
+    }
+    if task_name == "final_report_task":
+      task_kw["output_pydantic"] = TravelBudgetEstimateV1
+    tasks[task_name] = Task(**task_kw)
 
   # pass 2: context wiring
   for task_name, spec in tasks_cfg.items():
@@ -252,8 +337,12 @@ def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]
   agents = build_agents(agents_cfg, shared_cfg, inputs)
   tasks = build_tasks(tasks_cfg, agents, shared_cfg, inputs)
 
+  MANAGER_AGENT_KEY = "budget_crew_manager"
+  worker_agents = [a for k, a in agents.items() if k != MANAGER_AGENT_KEY]
+  manager_agent = agents[MANAGER_AGENT_KEY]
+
   crew = Crew(
-    agents=list(agents.values()),
+    agents=worker_agents,
     tasks=[
       tasks["trip_plan_task"],
       tasks["flight_estimate_task"],
@@ -265,14 +354,47 @@ def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]
       tasks["risk_buffer_task"],
       tasks["budget_aggregation_task"],
       tasks["validation_task"],
-      tasks["final_report_task"], 
+      tasks["final_report_task"],
     ],
-    process=Process.sequential,
+    process=Process.hierarchical,
+    manager_agent=manager_agent,
     verbose=shared_cfg.get("defaults", {}).get("verbose", True),
+    tracing=True,
   )
 
-  result = crew.kickoff()
-  data = coerce_json_dict(result)
+  def _result_to_data(result: Any) -> Dict[str, Any]:
+    # Prefer structured output from final task when output_pydantic is set
+    if hasattr(result, "tasks") and result.tasks:
+      last_task = result.tasks[-1]
+      out = getattr(last_task, "output", None)
+      if out is not None and hasattr(out, "model_dump"):
+        return out.model_dump()
+      if isinstance(out, dict):
+        return out
+    return coerce_json_dict(result)
+
+  last_error = None
+  data = None
+  for attempt in range(2):
+    result = crew.kickoff()
+    try:
+      data = _result_to_data(result)
+      break
+    except (ValueError, json.JSONDecodeError) as e:
+      last_error = e
+      raw = getattr(result, "raw", getattr(result, "output", result))
+      if isinstance(raw, str) and len(raw) > 2000:
+        raw_preview = raw[:2000] + "..."
+      else:
+        raw_preview = raw
+      logger.warning(
+        "Failed to parse crew output (attempt %s): %s. Raw output: %s",
+        attempt + 1,
+        e,
+        raw_preview,
+      )
+      if attempt == 1:
+        raise last_error
 
   # Normalize meta structure to match TravelBudgetEstimateV1 schema
   meta = data.get("meta")
