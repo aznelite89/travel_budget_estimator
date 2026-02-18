@@ -2,6 +2,12 @@
 
 ## 2026-02-18
 
+### Fixed
+
+- Stay (and food) estimates no longer use 0 nights/days: trip days and nights are now derived from start_date/end_date and passed into crew task inputs
+
+## 2026-02-18
+
 ### Added
 
 - extract_json helper: strip markdown code fences, brace-matching for one top-level JSON object, fallback regex; coerce_json_dict now uses it for robust parsing of crew output

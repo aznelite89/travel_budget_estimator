@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -316,10 +317,27 @@ def build_tasks(tasks_cfg: Dict[str, Any], agents: Dict[str, Agent], shared_cfg:
   return tasks
 
 
+def _trip_days_nights(start_date: str, end_date: str) -> tuple[int, int]:
+  """Compute trip days and nights from YYYY-MM-DD strings. Returns (days, nights)."""
+  try:
+    start = datetime.strptime(start_date.strip(), "%Y-%m-%d").date()
+    end = datetime.strptime(end_date.strip(), "%Y-%m-%d").date()
+  except (ValueError, TypeError):
+    return 0, 0
+  if end < start:
+    return 0, 0
+  delta_days = (end - start).days
+  nights = delta_days
+  days = delta_days + 1
+  return days, nights
+
+
 def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]:
   shared_cfg = load_yaml(CONFIG_DIR / "config.yaml")
   agents_cfg = load_yaml(CONFIG_DIR / "agents.yaml")
   tasks_cfg = load_yaml(CONFIG_DIR / "tasks.yaml")
+
+  days, nights = _trip_days_nights(run.start_date, run.end_date)
 
   inputs = {
     "trip_title": run.trip_title,
@@ -330,8 +348,8 @@ def run_budget_estimate(run: RunInputs, validate: bool = True) -> Dict[str, Any]
     "travelers": int(run.travelers),
     "currency": run.currency,
     "budget_style": run.budget_style,
-    "days": 0,
-    "nights": 0,
+    "days": days,
+    "nights": nights,
   }
 
   agents = build_agents(agents_cfg, shared_cfg, inputs)
